@@ -115,3 +115,10 @@ chatForm.addEventListener("submit", (event) => {
 
   sendChatMessage(text);
 });
+
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    chatForm.requestSubmit();
+  }
+});
