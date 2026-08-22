@@ -20,10 +20,15 @@ function createOrderState() {
     options: {},
     orderType: null,
     customer: { name: null, phone: null, email: null },
+    pickupTime: null,
+    deliveryAddress: null,
+    aptUnit: null,
+    deliveryInstructions: null,
     discount: null,
     total: 0,
     confirmed: false,
     status: "building",
+    savedOrderId: null,
   };
 }
 
@@ -67,6 +72,36 @@ const MENU_ITEMS = JSON.parse(
 const PROMOTIONS = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "data", "promotions.json"), "utf-8")
 );
+
+// Simple flat config — no per-category tax rules, no distance-based delivery pricing.
+const TAX_RATE = 0.08;
+const DELIVERY_FEE = 3.5;
+
+// Any tool that can change the order after it's been confirmed invalidates that
+// confirmation — the customer must review and confirm the order again.
+const ORDER_MUTATING_TOOLS = new Set([
+  "addItemToCart",
+  "modifyItem",
+  "removeItem",
+  "applyPromotion",
+  "setPickupDetails",
+  "setDeliveryDetails",
+]);
+
+// orders.json keeps a leading comment noting it's dev-only, non-database storage —
+// strip it to parse, re-add it on write so the file stays self-documenting.
+const ORDERS_PATH = path.join(__dirname, "..", "data", "orders.json");
+const ORDERS_FILE_HEADER =
+  "// TEMPORARY dev-only order storage. Not a database — revisit before production.";
+
+function readOrders() {
+  const raw = fs.readFileSync(ORDERS_PATH, "utf-8");
+  return JSON.parse(raw.replace(/^\s*\/\/.*(\r?\n)/, ""));
+}
+
+function writeOrders(orders) {
+  fs.writeFileSync(ORDERS_PATH, `${ORDERS_FILE_HEADER}\n${JSON.stringify(orders, null, 2)}\n`, "utf-8");
+}
 
 const tools = [
   {
@@ -196,6 +231,102 @@ const tools = [
       },
       required: [],
     },
+  },
+  {
+    name: "setPickupDetails",
+    description:
+      "Set up the customer's pickup order: their name (required) and an optional pickup time. " +
+      "Call with no arguments first to see what's already known and what's still missing — only " +
+      "ask the customer for fields this reports as missing, never re-ask for something already set. " +
+      "Call again with name and/or pickupTime once the customer gives them.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Customer's name for the pickup order.",
+        },
+        pickupTime: {
+          type: "string",
+          description:
+            "Requested pickup time as the customer said it, e.g. '3:30 PM' or 'in 20 minutes'. " +
+            "Optional — if not given, the order is prepared as soon as possible.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "setDeliveryDetails",
+    description:
+      "Set up the customer's delivery order: name, phone number, and full delivery address are " +
+      "required; apartment/unit and delivery instructions are optional. Call with no arguments " +
+      "first to see what's already known and what's still missing — only ask the customer for " +
+      "fields this reports as missing, never guess or re-ask for something already set. Call " +
+      "again with whichever fields the customer gives you.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Customer's name for the delivery order.",
+        },
+        phone: {
+          type: "string",
+          description: "Customer's phone number, as they gave it.",
+        },
+        address: {
+          type: "string",
+          description: "Full delivery street address (street, city, etc.).",
+        },
+        aptUnit: {
+          type: "string",
+          description: "Apartment or unit number, if applicable.",
+        },
+        deliveryInstructions: {
+          type: "string",
+          description: "Delivery instructions, e.g. gate code, 'leave at door'. Optional.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "calculateOrderTotal",
+    description:
+      "Calculate the customer's exact order total: subtotal from real menu prices and " +
+      "quantities, any currently valid active promotion, tax, and delivery fee (delivery " +
+      "orders only). This is the only source of truth for the total — never calculate, " +
+      "estimate, or state a subtotal, tax, or total yourself. Call this any time you need " +
+      "to show the customer a price total, especially before checkout.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "getOrderSummary",
+    description:
+      "Generate the complete, structured order summary: items with quantities and " +
+      "customizations, fulfillment details (pickup or delivery), any valid applied " +
+      "promotion, and the exact total. Always call this right before asking the customer " +
+      "for final checkout confirmation, and read back only what it returns — never assemble " +
+      "or restate the summary from memory or from other tool calls. Check readyForCheckout " +
+      "and the missing fields it reports before asking for confirmation.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "confirmOrder",
+    description:
+      "Confirm the order, save it, and get back its order ID. Only call this after showing " +
+      "the customer the full getOrderSummary output and receiving an explicit, unambiguous " +
+      "'yes' from them in response to that exact summary — e.g. 'yes that's correct', " +
+      "'confirm it', 'go ahead, place it'. Never call this on an ambiguous or non-committal " +
+      "reply ('ok', 'sure', 'I guess', 'sounds good' said in passing, silence) — ask a direct " +
+      "yes/no question instead and wait for a clear answer. This call fails on its own if the " +
+      "order isn't actually complete, as an extra safeguard. Share the returned order ID with " +
+      "the customer once it succeeds. If the customer already confirmed this order once and " +
+      "then changed it, calling this again updates that same saved order (same order ID) — " +
+      "check the returned 'updated' flag and tell the customer their order was updated, not " +
+      "that a new one was placed.",
+    input_schema: { type: "object", properties: {}, required: [] },
   },
 ];
 
@@ -619,27 +750,337 @@ function applyPromotion(input, orderState) {
   };
 }
 
+function setPickupDetails(input, orderState) {
+  const { name, pickupTime } = input || {};
+
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      return {
+        success: false,
+        error: "invalid_name",
+        message: "Name must be a non-empty string.",
+      };
+    }
+    orderState.customer.name = name.trim();
+  }
+
+  if (pickupTime !== undefined) {
+    if (typeof pickupTime !== "string" || !pickupTime.trim()) {
+      return {
+        success: false,
+        error: "invalid_pickup_time",
+        message: "Pickup time must be a non-empty string.",
+      };
+    }
+    orderState.pickupTime = pickupTime.trim();
+  }
+
+  if (name !== undefined || pickupTime !== undefined) {
+    orderState.orderType = "pickup";
+  }
+
+  const missing = [];
+  if (!orderState.customer.name) missing.push("name");
+
+  return {
+    success: true,
+    pickup: {
+      orderType: orderState.orderType,
+      name: orderState.customer.name,
+      pickupTime: orderState.pickupTime,
+    },
+    missing,
+    message: missing.length
+      ? `Still need: ${missing.join(", ")}. Ask the customer for this before checkout — pickup time is optional and can be skipped.`
+      : "All required pickup details are set. Pickup time is optional and may still be missing.",
+  };
+}
+
+function setDeliveryDetails(input, orderState) {
+  const { name, phone, address, aptUnit, deliveryInstructions } = input || {};
+
+  const stringFields = { name, phone, address, aptUnit, deliveryInstructions };
+  for (const [field, value] of Object.entries(stringFields)) {
+    if (value !== undefined && (typeof value !== "string" || !value.trim())) {
+      return {
+        success: false,
+        error: "invalid_field",
+        message: `${field} must be a non-empty string.`,
+      };
+    }
+  }
+
+  if (name !== undefined) orderState.customer.name = name.trim();
+  if (phone !== undefined) orderState.customer.phone = phone.trim();
+  if (address !== undefined) orderState.deliveryAddress = address.trim();
+  if (aptUnit !== undefined) orderState.aptUnit = aptUnit.trim();
+  if (deliveryInstructions !== undefined) orderState.deliveryInstructions = deliveryInstructions.trim();
+
+  if (Object.values(stringFields).some((v) => v !== undefined)) {
+    orderState.orderType = "delivery";
+  }
+
+  const missing = [];
+  if (!orderState.customer.name) missing.push("name");
+  if (!orderState.customer.phone) missing.push("phone");
+  if (!orderState.deliveryAddress) missing.push("address");
+
+  return {
+    success: true,
+    delivery: {
+      orderType: orderState.orderType,
+      name: orderState.customer.name,
+      phone: orderState.customer.phone,
+      address: orderState.deliveryAddress,
+      aptUnit: orderState.aptUnit,
+      deliveryInstructions: orderState.deliveryInstructions,
+    },
+    missing,
+    message: missing.length
+      ? `Still need: ${missing.join(", ")}. Ask the customer for this before checkout — never guess it. Apartment/unit and delivery instructions are optional.`
+      : "All required delivery details are set. Apartment/unit and delivery instructions are optional and may still be missing.",
+  };
+}
+
+function calculateOrderTotal(orderState) {
+  const subtotal = orderState.items.reduce((sum, id) => {
+    const menuItem = MENU_ITEMS.find((m) => m.id === id);
+    return sum + (menuItem ? menuItem.price * (orderState.quantities[id] || 0) : 0);
+  }, 0);
+
+  let discount = null;
+  let discountNote = null;
+
+  if (orderState.discount) {
+    const promotion = PROMOTIONS.find((p) => p.id === orderState.discount.promotionId);
+    const stillValid = promotion && promotion.active && checkPromotionEligibility(promotion, orderState).eligible;
+
+    if (stillValid) {
+      let discountAmount = 0;
+      const check = checkPromotionEligibility(promotion, orderState);
+      if (promotion.discountType === "percentage") {
+        const qualifyingSubtotal = check.qualifyingPrices.reduce((sum, p) => sum + p, 0);
+        discountAmount = qualifyingSubtotal * (promotion.discountValue / 100);
+      } else if (promotion.discountType === "bogo") {
+        const cheapestQualifying = Math.min(...check.qualifyingPrices);
+        discountAmount = cheapestQualifying * (promotion.discountValue / 100);
+      } else if (promotion.discountType === "fixed") {
+        discountAmount = promotion.discountValue;
+      }
+      discountAmount = Math.min(discountAmount, subtotal);
+      discountAmount = Math.round(discountAmount * 100) / 100;
+
+      discount = { promotionId: promotion.id, name: promotion.name, discountAmount };
+    } else {
+      discountNote =
+        "The previously applied promotion no longer qualifies for the current order and was not counted — let the customer know if relevant.";
+    }
+  }
+
+  const discountAmount = discount ? discount.discountAmount : 0;
+  const discountedSubtotal = Math.round((subtotal - discountAmount) * 100) / 100;
+
+  const taxAmount = Math.round(discountedSubtotal * TAX_RATE * 100) / 100;
+  const deliveryFee = orderState.orderType === "delivery" ? DELIVERY_FEE : 0;
+
+  const total = Math.round((discountedSubtotal + taxAmount + deliveryFee) * 100) / 100;
+
+  orderState.total = total;
+
+  return {
+    success: true,
+    breakdown: {
+      subtotal: Math.round(subtotal * 100) / 100,
+      discount,
+      taxRate: TAX_RATE,
+      taxAmount,
+      orderType: orderState.orderType,
+      deliveryFee,
+      total,
+    },
+    ...(discountNote ? { note: discountNote } : {}),
+  };
+}
+
+function getOrderSummary(orderState) {
+  const items = orderState.items.map((id) => {
+    const menuItem = MENU_ITEMS.find((m) => m.id === id);
+    const opts = orderState.options[id] || { size: null, extras: [] };
+    return {
+      itemId: id,
+      name: menuItem ? menuItem.name : id,
+      quantity: orderState.quantities[id],
+      size: opts.size,
+      options: opts.extras,
+    };
+  });
+
+  let fulfillment;
+  if (orderState.orderType === "pickup") {
+    fulfillment = {
+      type: "pickup",
+      name: orderState.customer.name,
+      pickupTime: orderState.pickupTime,
+      missing: orderState.customer.name ? [] : ["name"],
+    };
+  } else if (orderState.orderType === "delivery") {
+    const missing = [];
+    if (!orderState.customer.name) missing.push("name");
+    if (!orderState.customer.phone) missing.push("phone");
+    if (!orderState.deliveryAddress) missing.push("address");
+    fulfillment = {
+      type: "delivery",
+      name: orderState.customer.name,
+      phone: orderState.customer.phone,
+      address: orderState.deliveryAddress,
+      aptUnit: orderState.aptUnit,
+      deliveryInstructions: orderState.deliveryInstructions,
+      missing,
+    };
+  } else {
+    fulfillment = { type: null, missing: ["orderType (pickup or delivery)"] };
+  }
+
+  const pricingResult = calculateOrderTotal(orderState);
+
+  const missingSomething = items.length === 0 || fulfillment.missing.length > 0;
+  const readyForCheckout = !missingSomething;
+
+  return {
+    success: true,
+    items,
+    fulfillment,
+    promotion: pricingResult.breakdown.discount,
+    pricing: {
+      subtotal: pricingResult.breakdown.subtotal,
+      taxRate: pricingResult.breakdown.taxRate,
+      taxAmount: pricingResult.breakdown.taxAmount,
+      deliveryFee: pricingResult.breakdown.deliveryFee,
+      total: pricingResult.breakdown.total,
+    },
+    ...(pricingResult.note ? { promotionNote: pricingResult.note } : {}),
+    readyForCheckout,
+    message: readyForCheckout
+      ? "Complete order summary — read this back to the customer exactly and get their explicit confirmation before finalizing."
+      : items.length === 0
+      ? "Cart is empty — there's nothing to summarize yet."
+      : `Still missing before checkout: ${fulfillment.missing.join(", ")}.`,
+  };
+}
+
+function confirmOrder(orderState) {
+  const summary = getOrderSummary(orderState);
+
+  if (!summary.readyForCheckout) {
+    return {
+      success: false,
+      error: "not_ready",
+      message: `The order can't be confirmed yet: ${summary.message}`,
+    };
+  }
+
+  let orderRecord;
+
+  try {
+    const orders = readOrders();
+    const existingIndex = orderState.savedOrderId
+      ? orders.findIndex((o) => o.orderId === orderState.savedOrderId)
+      : -1;
+
+    if (existingIndex !== -1) {
+      orderRecord = {
+        ...orders[existingIndex],
+        status: "NEW",
+        items: summary.items,
+        fulfillment: summary.fulfillment,
+        promotion: summary.promotion,
+        pricing: summary.pricing,
+        updatedAt: new Date().toISOString(),
+      };
+      orders[existingIndex] = orderRecord;
+    } else {
+      orderRecord = {
+        orderId: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        status: "NEW",
+        items: summary.items,
+        fulfillment: summary.fulfillment,
+        promotion: summary.promotion,
+        pricing: summary.pricing,
+      };
+      orders.push(orderRecord);
+    }
+
+    writeOrders(orders);
+  } catch (err) {
+    console.error("Failed to save confirmed order:", err);
+    return {
+      success: false,
+      error: "save_failed",
+      message: "There was a technical problem saving the order. Tell the customer and ask them to try confirming again.",
+    };
+  }
+
+  orderState.confirmed = true;
+  orderState.status = "confirmed";
+  orderState.savedOrderId = orderRecord.orderId;
+
+  const wasUpdate = Boolean(orderRecord.updatedAt);
+
+  return {
+    success: true,
+    confirmed: true,
+    orderId: orderRecord.orderId,
+    updated: wasUpdate,
+    summary: {
+      items: summary.items,
+      fulfillment: summary.fulfillment,
+      promotion: summary.promotion,
+      pricing: summary.pricing,
+    },
+    message: wasUpdate
+      ? "The existing saved order was updated with these changes — same order ID as before. Tell the customer their order was updated, not that a new one was placed. Full checkout/payment submission still isn't available yet."
+      : "Order confirmed, saved, and locked in — share the order ID with the customer. Full checkout/payment submission still isn't available yet.",
+  };
+}
+
 async function executeTool(name, input, orderState) {
+  const wasConfirmed = orderState.confirmed;
+  let result;
+
   if (name === "getMenu") {
-    const activeItems = MENU_ITEMS.filter((item) => item.available);
-    return JSON.stringify(activeItems);
+    result = MENU_ITEMS.filter((item) => item.available);
+  } else if (name === "addItemToCart") {
+    result = addItemToCart(input, orderState);
+  } else if (name === "modifyItem") {
+    result = modifyItem(input, orderState);
+  } else if (name === "removeItem") {
+    result = removeItem(input, orderState);
+  } else if (name === "viewCart") {
+    result = viewCart(orderState);
+  } else if (name === "applyPromotion") {
+    result = applyPromotion(input, orderState);
+  } else if (name === "setPickupDetails") {
+    result = setPickupDetails(input, orderState);
+  } else if (name === "setDeliveryDetails") {
+    result = setDeliveryDetails(input, orderState);
+  } else if (name === "calculateOrderTotal") {
+    result = calculateOrderTotal(orderState);
+  } else if (name === "getOrderSummary") {
+    result = getOrderSummary(orderState);
+  } else if (name === "confirmOrder") {
+    result = confirmOrder(orderState);
+  } else {
+    result = { error: `Unknown tool: ${name}` };
   }
-  if (name === "addItemToCart") {
-    return JSON.stringify(addItemToCart(input, orderState));
+
+  const succeeded = !result || typeof result !== "object" || result.success !== false;
+  if (wasConfirmed && ORDER_MUTATING_TOOLS.has(name) && succeeded) {
+    orderState.confirmed = false;
+    orderState.status = "building";
   }
-  if (name === "modifyItem") {
-    return JSON.stringify(modifyItem(input, orderState));
-  }
-  if (name === "removeItem") {
-    return JSON.stringify(removeItem(input, orderState));
-  }
-  if (name === "viewCart") {
-    return JSON.stringify(viewCart(orderState));
-  }
-  if (name === "applyPromotion") {
-    return JSON.stringify(applyPromotion(input, orderState));
-  }
-  return JSON.stringify({ error: `Unknown tool: ${name}` });
+
+  return JSON.stringify(result);
 }
 
 app.use(express.json());
@@ -713,6 +1154,41 @@ app.post("/api/chat", async (req, res) => {
         "Sorry, I'm having trouble thinking right now. Please try again in a moment.",
       error: "chat_failed",
     });
+  }
+});
+
+const STAFF_ORDER_STATUSES = ["NEW", "PREPARING", "READY", "COMPLETED"];
+
+app.get("/api/orders", (req, res) => {
+  try {
+    res.json(readOrders());
+  } catch (err) {
+    console.error("Failed to read orders:", err);
+    res.status(500).json({ error: "Failed to read orders." });
+  }
+});
+
+app.patch("/api/orders/:orderId/status", (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  if (!STAFF_ORDER_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `Status must be one of: ${STAFF_ORDER_STATUSES.join(", ")}` });
+  }
+
+  try {
+    const orders = readOrders();
+    const order = orders.find((o) => o.orderId === orderId);
+    if (!order) {
+      return res.status(404).json({ error: `No order with id "${orderId}".` });
+    }
+    order.status = status;
+    order.updatedAt = new Date().toISOString();
+    writeOrders(orders);
+    res.json(order);
+  } catch (err) {
+    console.error("Failed to update order status:", err);
+    res.status(500).json({ error: "Failed to update order status." });
   }
 });
 

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>CafeBot — Staff Dashboard</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f7f5f2;
+    color: #2b2320;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin: 0 0 16px;
+  }
+  #refresh-btn {
+    margin-bottom: 16px;
+    padding: 6px 14px;
+    border: 1px solid #c9beb2;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #orders {
+    display: grid;
+    gap: 12px;
+    max-width: 720px;
+  }
+  .order-card {
+    background: #fff;
+    border: 1px solid #e2d9cf;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .order-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .order-id {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #6b6058;
+  }
+  .status-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #eee;
+  }
+  .status-NEW { background: #ffe6b3; }
+  .status-PREPARING { background: #bfe0ff; }
+  .status-READY { background: #c6f0c2; }
+  .status-COMPLETED { background: #ddd; color: #777; }
+  .order-items { margin: 8px 0; padding-left: 18px; }
+  .order-fulfillment, .order-total { font-size: 0.9rem; margin: 4px 0; }
+  .order-actions { margin-top: 10px; }
+  .order-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #4a3728;
+    color: #fff;
+    cursor: pointer;
+  }
+  .empty { color: #6b6058; }
+</style>
+</head>
+<body>
+  <h1>CafeBot — Staff Dashboard</h1>
+  <button id="refresh-btn">Refresh</button>
+  <div id="orders"></div>
+
+  <script>
+    const NEXT_STATUS = {
+      NEW: "PREPARING",
+      PREPARING: "READY",
+      READY: "COMPLETED",
+    };
+    const NEXT_LABEL = {
+      NEW: "Start Preparing",
+      PREPARING: "Mark Ready",
+      READY: "Mark Completed",
+    };
+
+    async function loadOrders() {
+      const container = document.getElementById("orders");
+      container.innerHTML = "Loading...";
+
+      let orders;
+      try {
+        const res = await fetch("/api/orders");
+        orders = await res.json();
+      } catch (err) {
+        container.innerHTML = '<p class="empty">Failed to load orders.</p>';
+        return;
+      }
+
+      if (!Array.isArray(orders) || orders.length === 0) {
+        container.innerHTML = '<p class="empty">No orders yet.</p>';
+        return;
+      }
+
+      container.innerHTML = "";
+      [...orders].reverse().forEach((order) => container.appendChild(renderOrderCard(order)));
+    }
+
+    function renderOrderCard(order) {
+      const card = document.createElement("div");
+      card.className = "order-card";
+
+      const itemsHtml = order.items
+        .map((item) => {
+          const details = [item.size, ...(item.options || [])].filter(Boolean).join(", ");
+          return `<li>${item.quantity}x ${item.name}${details ? ` (${details})` : ""}</li>`;
+        })
+        .join("");
+
+      const f = order.fulfillment || {};
+      let fulfillmentHtml = "";
+      if (f.type === "pickup") {
+        fulfillmentHtml = `Pickup — ${f.name || "?"}${f.pickupTime ? `, ${f.pickupTime}` : " (ASAP)"}`;
+      } else if (f.type === "delivery") {
+        fulfillmentHtml = `Delivery — ${f.name || "?"}, ${f.phone || "?"}<br>${f.address || "?"}${
+          f.aptUnit ? `, ${f.aptUnit}` : ""
+        }${f.deliveryInstructions ? `<br><em>${f.deliveryInstructions}</em>` : ""}`;
+      } else {
+        fulfillmentHtml = "Fulfillment type not set";
+      }
+
+      const total = order.pricing ? `$${order.pricing.total.toFixed(2)}` : "—";
+      const nextStatus = NEXT_STATUS[order.status];
+
+      card.innerHTML = `
+        <div class="order-top">
+          <span class="order-id">${order.orderId}</span>
+          <span class="status-badge status-${order.status}">${order.status}</span>
+        </div>
+        <ul class="order-items">${itemsHtml}</ul>
+        <div class="order-fulfillment">${fulfillmentHtml}</div>
+        <div class="order-total">Total: <strong>${total}</strong></div>
+        <div class="order-actions"></div>
+      `;
+
+      if (nextStatus) {
+        const btn = document.createElement("button");
+        btn.textContent = NEXT_LABEL[order.status];
+        btn.addEventListener("click", () => updateStatus(order.orderId, nextStatus));
+        card.querySelector(".order-actions").appendChild(btn);
+      }
+
+      return card;
+    }
+
+    async function updateStatus(orderId, status) {
+      try {
+        await fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+      } catch (err) {
+        alert("Failed to update order status.");
+      }
+      loadOrders();
+    }
+
+    document.getElementById("refresh-btn").addEventListener("click", loadOrders);
+    loadOrders();
+  </script>
+</body>
+</html>
