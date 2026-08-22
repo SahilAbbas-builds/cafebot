@@ -16,7 +16,10 @@
 
   <header class="site-header">
     <div class="container header-inner">
-      <a href="#home" class="logo">Cafe<span>Bot</span></a>
+      <a href="#home" class="logo">
+        <img id="site-logo-icon" class="logo-icon" alt="" hidden />
+        <span data-brand="cafeName">CafeBot</span>
+      </a>
 
       <input type="checkbox" id="nav-toggle" class="nav-toggle" />
       <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation">
@@ -65,9 +68,9 @@
 
     <section id="about" class="about">
       <div class="container">
-        <h2>About CafeBot</h2>
+        <h2>About <span data-brand="cafeName">CafeBot</span></h2>
         <p>
-          CafeBot started as a small counter with one espresso machine and a big idea: coffee
+          <span data-brand="cafeName">CafeBot</span> started as a small counter with one espresso machine and a big idea: coffee
           should bring people together. Today we roast in small batches, bake daily, and
           source ingredients from local partners we trust. Whether you're grabbing a quick
           espresso or settling in for the afternoon, our doors — and our seats — are open.
@@ -174,7 +177,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p>&copy; 2026 CafeBot. All rights reserved.</p>
+      <p>&copy; <span id="footer-year">2026</span> <span data-brand="cafeName">CafeBot</span>. All rights reserved.</p>
       <ul class="footer-links">
         <li><a href="#home">Home</a></li>
         <li><a href="#about">About</a></li>
@@ -187,7 +190,7 @@
   <div class="chat-widget">
     <div class="chat-window" id="chat-window" hidden>
       <div class="chat-header">
-        <span>CafeBot</span>
+        <span data-brand="assistantName">CafeBot</span>
         <button type="button" class="chat-close" id="chat-close" aria-label="Close chat">&times;</button>
       </div>
       <div class="chat-messages" id="chat-messages"></div>

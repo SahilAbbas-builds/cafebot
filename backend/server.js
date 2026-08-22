@@ -62,18 +62,22 @@ function getOrderState(req, res) {
 
 const client = new Anthropic({ maxRetries: 3 });
 
-const SYSTEM_PROMPT = fs.readFileSync(
+const BRAND_CONFIG = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "..", "data", "brand.config.json"), "utf-8")
+);
+const SYSTEM_PROMPT_TEMPLATE = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system-prompt.md"),
   "utf-8"
 );
+const SYSTEM_PROMPT = SYSTEM_PROMPT_TEMPLATE.replaceAll(
+  "{{ASSISTANT_NAME}}",
+  BRAND_CONFIG.assistantName
+).replaceAll("{{CAFE_NAME}}", BRAND_CONFIG.cafeName);
 const MENU_ITEMS = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "data", "menu.json"), "utf-8")
 );
 const PROMOTIONS = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "data", "promotions.json"), "utf-8")
-);
-const SITE_CONFIG = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "..", "data", "site.json"), "utf-8")
 );
 
 // Simple flat config — no per-category tax rules, no distance-based delivery pricing.
@@ -1199,10 +1203,10 @@ app.get("/api/menu", (req, res) => {
   res.json(MENU_ITEMS.filter((item) => item.available));
 });
 
-app.get("/api/site", (req, res) => {
-  res.json(SITE_CONFIG);
+app.get("/api/brand", (req, res) => {
+  res.json(BRAND_CONFIG);
 });
 
 app.listen(PORT, () => {
-  console.log(`CafeBot server running at http://localhost:${PORT}`);
+  console.log(`${BRAND_CONFIG.cafeName} server running at http://localhost:${PORT}`);
 });

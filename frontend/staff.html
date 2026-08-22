@@ -72,11 +72,27 @@
 </style>
 </head>
 <body>
-  <h1>CafeBot — Staff Dashboard</h1>
+  <h1><span data-brand="cafeName">CafeBot</span> — Staff Dashboard</h1>
   <button id="refresh-btn">Refresh</button>
   <div id="orders"></div>
 
   <script>
+    async function hydrateBrand() {
+      try {
+        const res = await fetch("/api/brand");
+        if (!res.ok) return;
+        const brand = await res.json();
+        if (brand.cafeName) {
+          document.title = `${brand.cafeName} — Staff Dashboard`;
+          document.querySelectorAll("[data-brand='cafeName']").forEach((el) => {
+            el.textContent = brand.cafeName;
+          });
+        }
+      } catch (err) {
+        // Static defaults already in the markup keep the page correct if this fails.
+      }
+    }
+
     const NEXT_STATUS = {
       NEW: "PREPARING",
       PREPARING: "READY",
@@ -171,6 +187,7 @@
     }
 
     document.getElementById("refresh-btn").addEventListener("click", loadOrders);
+    hydrateBrand();
     loadOrders();
   </script>
 </body>

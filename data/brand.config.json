@@ -1,0 +1,15 @@
+{
+  "cafeName": "CafeBot",
+  "tagline": "Fresh Coffee, Warm Welcome",
+  "assistantName": "CafeBot",
+  "logoIcon": null,
+  "colors": {
+    "primary": "#b5502e",
+    "primaryDark": "#8f3d22",
+    "accent": "#4a5d3a"
+  },
+  "images": {
+    "hero": "images/hero/cafe-warmth.jpg",
+    "heroAlt": "Warm, sunlit corner of a cozy café with rustic wooden furniture"
+  }
+}

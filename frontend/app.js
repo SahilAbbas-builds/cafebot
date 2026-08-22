@@ -1,9 +1,53 @@
-async function hydrateMenuImages() {
+const DEFAULT_ASSISTANT_NAME = "CafeBot";
+let assistantName = DEFAULT_ASSISTANT_NAME;
+
+function applyBrand(brand) {
+  assistantName = brand.assistantName || DEFAULT_ASSISTANT_NAME;
+
+  if (brand.cafeName && brand.tagline) {
+    document.title = `${brand.cafeName} — ${brand.tagline}`;
+  }
+
+  const rootStyle = document.documentElement.style;
+  if (brand.colors) {
+    if (brand.colors.primary) rootStyle.setProperty("--color-rust", brand.colors.primary);
+    if (brand.colors.primaryDark) rootStyle.setProperty("--color-rust-dark", brand.colors.primaryDark);
+    if (brand.colors.accent) rootStyle.setProperty("--color-forest", brand.colors.accent);
+  }
+
+  document.querySelectorAll("[data-brand='cafeName']").forEach((el) => {
+    if (brand.cafeName) el.textContent = brand.cafeName;
+  });
+  document.querySelectorAll("[data-brand='assistantName']").forEach((el) => {
+    el.textContent = assistantName;
+  });
+
+  const logoIcon = document.getElementById("site-logo-icon");
+  if (logoIcon && brand.logoIcon) {
+    logoIcon.src = brand.logoIcon;
+    logoIcon.alt = `${brand.cafeName || "Cafe"} logo`;
+    logoIcon.hidden = false;
+  }
+
+  const footerYear = document.getElementById("footer-year");
+  if (footerYear) footerYear.textContent = new Date().getFullYear();
+
+  const heroPhoto = document.getElementById("hero-photo");
+  if (heroPhoto && brand.images && brand.images.hero) {
+    heroPhoto.src = brand.images.hero;
+    heroPhoto.alt = brand.images.heroAlt || heroPhoto.alt;
+  }
+}
+
+async function hydrateSite() {
   try {
-    const [menuRes, siteRes] = await Promise.all([
+    const [brandRes, menuRes] = await Promise.all([
+      fetch("/api/brand"),
       fetch("/api/menu"),
-      fetch("/api/site"),
     ]);
+    if (brandRes.ok) {
+      applyBrand(await brandRes.json());
+    }
     if (menuRes.ok) {
       const items = await menuRes.json();
       document.querySelectorAll(".menu-card[data-item-id]").forEach((card) => {
@@ -16,20 +60,12 @@ async function hydrateMenuImages() {
         }
       });
     }
-    if (siteRes.ok) {
-      const site = await siteRes.json();
-      const heroPhoto = document.getElementById("hero-photo");
-      if (heroPhoto && site.heroImage) {
-        heroPhoto.src = site.heroImage;
-        heroPhoto.alt = site.heroImageAlt || heroPhoto.alt;
-      }
-    }
   } catch (networkError) {
-    // Static src attributes already in the markup keep the page correct if this fails.
+    // Static defaults already in the markup keep the page correct if this fails.
   }
 }
 
-hydrateMenuImages();
+hydrateSite();
 
 const navToggle = document.getElementById("nav-toggle");
 document.querySelectorAll(".site-nav a").forEach((link) => {
@@ -101,7 +137,7 @@ function showTypingIndicator() {
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble bot";
   bubble.id = "typing-indicator";
-  bubble.textContent = "CafeBot is typing…";
+  bubble.textContent = `${assistantName} is typing…`;
   chatMessages.appendChild(bubble);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -147,7 +183,7 @@ async function sendChatMessage(text) {
   } catch (networkError) {
     hideTypingIndicator();
     addMessage(
-      "Sorry, I couldn't reach CafeBot right now. Please check your connection and try again.",
+      `Sorry, I couldn't reach ${assistantName} right now. Please check your connection and try again.`,
       "bot"
     );
   } finally {
