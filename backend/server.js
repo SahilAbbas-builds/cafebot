@@ -109,22 +109,38 @@ const ORDER_MUTATING_TOOLS = new Set([
   "setDeliveryDetails",
 ]);
 
-// Orders storage: reads/writes data/orders.json directly on disk. This is a
+// Orders storage: reads/writes orders.json directly on disk. This is a
 // development/demo convenience only, not a database — there's no locking,
-// concurrency control, or durability guarantee. In particular, if this is
-// deployed to Vercel (or any serverless platform), the filesystem is
-// ephemeral/read-only per invocation: writes here are not guaranteed to
-// persist or to be visible across function instances or after a cold start.
-// Replace with a real database before running this in production.
+// concurrency control, or durability guarantee.
+//
+// On Vercel (or other serverless platforms) the deployed bundle's filesystem
+// is read-only, so writing to data/orders.json there fails outright — this
+// broke order confirmation and status updates in production entirely (every
+// write threw, caught as "technical problem saving the order"). As a
+// stopgap, order storage is redirected to /tmp — the one writable directory
+// a Vercel function gets — when the VERCEL env var is set, so checkout
+// works again. /tmp is still not real persistence: it's ephemeral per
+// function instance, can be wiped on a cold start, and isn't shared across
+// instances, so an order can still fail to show up on the staff dashboard
+// depending on which instance handles a given request. Replace with a real
+// database (e.g. Vercel Postgres/KV) before relying on this in production.
 //
 // orders.json keeps a leading comment noting it's dev-only, non-database storage —
 // strip it to parse, re-add it on write so the file stays self-documenting.
-const ORDERS_PATH = path.join(__dirname, "..", "data", "orders.json");
+const ORDERS_PATH = process.env.VERCEL
+  ? path.join("/tmp", "orders.json")
+  : path.join(__dirname, "..", "data", "orders.json");
 const ORDERS_FILE_HEADER =
   "// TEMPORARY dev-only order storage. Not a database — revisit before production.";
 
 function readOrders() {
-  const raw = fs.readFileSync(ORDERS_PATH, "utf-8");
+  let raw;
+  try {
+    raw = fs.readFileSync(ORDERS_PATH, "utf-8");
+  } catch (err) {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  }
   return JSON.parse(raw.replace(/^\s*\/\/.*(\r?\n)/, ""));
 }
 
