@@ -1,5 +1,3 @@
-const MOCK_REPLY = "Hi! I'm CafeBot. My AI brain isn't connected yet.";
-
 const navToggle = document.getElementById("nav-toggle");
 document.querySelectorAll(".site-nav a").forEach((link) => {
   link.addEventListener("click", () => {
@@ -43,13 +41,77 @@ chatToggle.addEventListener("click", () => {
 
 chatClose.addEventListener("click", closeChat);
 
+let conversationHistory = [];
+let isSending = false;
+const MAX_HISTORY_MESSAGES = 20;
+
+function showTypingIndicator() {
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble bot";
+  bubble.id = "typing-indicator";
+  bubble.textContent = "CafeBot is typing…";
+  chatMessages.appendChild(bubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function hideTypingIndicator() {
+  const indicator = document.getElementById("typing-indicator");
+  if (indicator) indicator.remove();
+}
+
+async function sendChatMessage(text) {
+  isSending = true;
+  showTypingIndicator();
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: text,
+        conversationHistory: conversationHistory.slice(-MAX_HISTORY_MESSAGES),
+      }),
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      data = null;
+    }
+
+    hideTypingIndicator();
+
+    if (!response.ok) {
+      addMessage(
+        (data && data.reply) || "Sorry, something went wrong. Please try again.",
+        "bot"
+      );
+      return;
+    }
+
+    conversationHistory = data.conversationHistory || conversationHistory;
+    addMessage(data.reply || "Sorry, I didn't catch that.", "bot");
+  } catch (networkError) {
+    hideTypingIndicator();
+    addMessage(
+      "Sorry, I couldn't reach CafeBot right now. Please check your connection and try again.",
+      "bot"
+    );
+  } finally {
+    isSending = false;
+  }
+}
+
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (isSending) return;
+
   const text = chatInput.value.trim();
   if (!text) return;
 
   addMessage(text, "user");
   chatInput.value = "";
 
-  addMessage(MOCK_REPLY, "bot");
+  sendChatMessage(text);
 });
