@@ -95,6 +95,14 @@ const ORDER_MUTATING_TOOLS = new Set([
   "setDeliveryDetails",
 ]);
 
+// Orders storage: reads/writes data/orders.json directly on disk. This is a
+// development/demo convenience only, not a database — there's no locking,
+// concurrency control, or durability guarantee. In particular, if this is
+// deployed to Vercel (or any serverless platform), the filesystem is
+// ephemeral/read-only per invocation: writes here are not guaranteed to
+// persist or to be visible across function instances or after a cold start.
+// Replace with a real database before running this in production.
+//
 // orders.json keeps a leading comment noting it's dev-only, non-database storage —
 // strip it to parse, re-add it on write so the file stays self-documenting.
 const ORDERS_PATH = path.join(__dirname, "..", "data", "orders.json");
