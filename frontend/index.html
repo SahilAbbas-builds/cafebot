@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CafeBot — Fresh Coffee, Warm Welcome</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -33,9 +39,27 @@
   <main>
     <section id="home" class="hero">
       <div class="container hero-inner">
-        <h1>Your Neighborhood Coffee Ritual</h1>
-        <p>Freshly roasted beans, house-made pastries, and a cozy corner to slow down in.</p>
-        <a href="#menu" class="btn btn-primary">View Menu</a>
+        <div class="hero-copy">
+          <h1>Your Neighborhood Coffee Ritual</h1>
+          <p>Freshly roasted beans, house-made pastries, and a cozy corner to slow down in.</p>
+          <a href="#menu" class="btn btn-primary">View Menu</a>
+        </div>
+        <div class="hero-visual">
+          <img
+            class="hero-photo"
+            id="hero-photo"
+            src="images/hero/cafe-warmth.jpg"
+            alt="Warm, sunlit corner of a cozy café with rustic wooden furniture"
+            loading="eager"
+          />
+          <div class="hero-steam-badge">
+            <svg class="hero-steam" viewBox="0 0 200 260" fill="none" aria-hidden="true" focusable="false">
+              <path class="steam-line steam-line-1" d="M60 240 C 40 210, 80 190, 60 160 C 40 130, 80 110, 60 80" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+              <path class="steam-line steam-line-2" d="M110 250 C 90 215, 135 195, 110 160 C 88 128, 132 100, 108 60" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+              <path class="steam-line steam-line-3" d="M155 235 C 138 205, 172 188, 152 155" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -56,40 +80,70 @@
         <h2>Our Menu</h2>
         <div class="menu-grid">
 
-          <article class="menu-card">
-            <h3>Espresso</h3>
-            <span class="price">$3.00</span>
-            <p>A bold, concentrated shot pulled from our house blend.</p>
+          <article class="menu-card" data-item-id="espresso">
+            <div class="menu-card-media">
+              <img class="menu-card-img" src="images/menu/espresso.jpg" alt="Espresso" loading="lazy" decoding="async" />
+              <span class="price">$3.00</span>
+            </div>
+            <div class="menu-card-body">
+              <h3>Espresso</h3>
+              <p>A bold, concentrated shot pulled from our house blend.</p>
+            </div>
           </article>
 
-          <article class="menu-card">
-            <h3>Cappuccino</h3>
-            <span class="price">$4.25</span>
-            <p>Espresso topped with steamed milk and a thick layer of foam.</p>
+          <article class="menu-card" data-item-id="cappuccino">
+            <div class="menu-card-media">
+              <img class="menu-card-img" src="images/menu/cappuccino.jpg" alt="Cappuccino" loading="lazy" decoding="async" />
+              <span class="price">$4.25</span>
+            </div>
+            <div class="menu-card-body">
+              <h3>Cappuccino</h3>
+              <p>Espresso topped with steamed milk and a thick layer of foam.</p>
+            </div>
           </article>
 
-          <article class="menu-card">
-            <h3>Caffe Latte</h3>
-            <span class="price">$4.50</span>
-            <p>Smooth espresso with steamed milk and a light layer of foam.</p>
+          <article class="menu-card" data-item-id="caffe-latte">
+            <div class="menu-card-media">
+              <img class="menu-card-img" src="images/menu/caffe-latte.jpg" alt="Caffe Latte" loading="lazy" decoding="async" />
+              <span class="price">$4.50</span>
+            </div>
+            <div class="menu-card-body">
+              <h3>Caffe Latte</h3>
+              <p>Smooth espresso with steamed milk and a light layer of foam.</p>
+            </div>
           </article>
 
-          <article class="menu-card">
-            <h3>Cold Brew</h3>
-            <span class="price">$4.75</span>
-            <p>Slow-steeped for 18 hours for a smooth, low-acid finish.</p>
+          <article class="menu-card" data-item-id="cold-brew">
+            <div class="menu-card-media">
+              <img class="menu-card-img" src="images/menu/cold-brew.jpg" alt="Cold Brew" loading="lazy" decoding="async" />
+              <span class="price">$4.75</span>
+            </div>
+            <div class="menu-card-body">
+              <h3>Cold Brew</h3>
+              <p>Slow-steeped for 18 hours for a smooth, low-acid finish.</p>
+            </div>
           </article>
 
-          <article class="menu-card">
-            <h3>Butter Croissant</h3>
-            <span class="price">$3.50</span>
-            <p>Flaky, buttery, and baked fresh in-house every morning.</p>
+          <article class="menu-card" data-item-id="butter-croissant">
+            <div class="menu-card-media">
+              <img class="menu-card-img" src="images/menu/butter-croissant.jpg" alt="Butter Croissant" loading="lazy" decoding="async" />
+              <span class="price">$3.50</span>
+            </div>
+            <div class="menu-card-body">
+              <h3>Butter Croissant</h3>
+              <p>Flaky, buttery, and baked fresh in-house every morning.</p>
+            </div>
           </article>
 
-          <article class="menu-card">
-            <h3>Avocado Toast</h3>
-            <span class="price">$7.00</span>
-            <p>Sourdough, smashed avocado, chili flakes, and a squeeze of lime.</p>
+          <article class="menu-card" data-item-id="avocado-toast">
+            <div class="menu-card-media">
+              <img class="menu-card-img" src="images/menu/avocado-toast.jpg" alt="Avocado Toast" loading="lazy" decoding="async" />
+              <span class="price">$7.00</span>
+            </div>
+            <div class="menu-card-body">
+              <h3>Avocado Toast</h3>
+              <p>Sourdough, smashed avocado, chili flakes, and a squeeze of lime.</p>
+            </div>
           </article>
 
         </div>
@@ -150,7 +204,13 @@
     </div>
 
     <button type="button" class="chat-toggle" id="chat-toggle" aria-label="Open chat">
-      <span class="chat-toggle-icon">💬</span>
+      <svg class="chat-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="M9 10c-1 -1.4 0.6 -2 0 -3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M13 10c-1 -1.4 0.6 -2 0 -3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M5 11h13a1 1 0 0 1 1 1c0 2.4 -1.4 3.6 -3 3.9V17a3 3 0 0 1 -3 3H8a3 3 0 0 1 -3 -3v-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M18 12.3c1.6 0.2 2.5 0.9 2.5 2s-1 1.7 -2.7 1.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span class="chat-toggle-label">Chat with us</span>
     </button>
   </div>
 

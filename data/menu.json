@@ -8,7 +8,8 @@
     "sizes": ["Single", "Double"],
     "options": [],
     "allergens": [],
-    "available": true
+    "available": true,
+    "image": "images/menu/espresso.jpg"
   },
   {
     "id": "cappuccino",
@@ -19,7 +20,8 @@
     "sizes": ["Small", "Medium", "Large"],
     "options": ["Oat milk", "Almond milk", "Extra shot"],
     "allergens": ["dairy"],
-    "available": true
+    "available": true,
+    "image": "images/menu/cappuccino.jpg"
   },
   {
     "id": "caffe-latte",
@@ -30,7 +32,8 @@
     "sizes": ["Small", "Medium", "Large"],
     "options": ["Oat milk", "Almond milk", "Vanilla syrup", "Extra shot"],
     "allergens": ["dairy"],
-    "available": true
+    "available": true,
+    "image": "images/menu/caffe-latte.jpg"
   },
   {
     "id": "chai-latte",
@@ -41,7 +44,8 @@
     "sizes": ["Small", "Medium", "Large"],
     "options": ["Oat milk", "Extra spice"],
     "allergens": ["dairy"],
-    "available": true
+    "available": true,
+    "image": "images/menu/chai-latte.jpg"
   },
   {
     "id": "hot-chocolate",
@@ -52,7 +56,8 @@
     "sizes": ["Small", "Medium", "Large"],
     "options": ["Whipped cream", "Oat milk"],
     "allergens": ["dairy"],
-    "available": true
+    "available": true,
+    "image": "images/menu/hot-chocolate.jpg"
   },
   {
     "id": "cold-brew",
@@ -63,7 +68,8 @@
     "sizes": ["Medium", "Large"],
     "options": ["Oat milk", "Simple syrup"],
     "allergens": [],
-    "available": true
+    "available": true,
+    "image": "images/menu/cold-brew.jpg"
   },
   {
     "id": "iced-matcha-latte",
@@ -74,7 +80,8 @@
     "sizes": ["Small", "Medium", "Large"],
     "options": ["Oat milk", "Almond milk"],
     "allergens": ["dairy"],
-    "available": true
+    "available": true,
+    "image": "images/menu/iced-matcha-latte.jpg"
   },
   {
     "id": "english-breakfast-tea",
@@ -85,7 +92,8 @@
     "sizes": ["12oz", "16oz"],
     "options": ["Honey", "Lemon", "Milk"],
     "allergens": [],
-    "available": true
+    "available": true,
+    "image": "images/menu/english-breakfast-tea.jpg"
   },
   {
     "id": "green-tea",
@@ -96,7 +104,8 @@
     "sizes": ["12oz", "16oz"],
     "options": ["Honey"],
     "allergens": [],
-    "available": true
+    "available": true,
+    "image": "images/menu/green-tea.jpg"
   },
   {
     "id": "butter-croissant",
@@ -107,7 +116,8 @@
     "sizes": [],
     "options": [],
     "allergens": ["gluten", "dairy", "eggs"],
-    "available": true
+    "available": true,
+    "image": "images/menu/butter-croissant.jpg"
   },
   {
     "id": "blueberry-muffin",
@@ -118,7 +128,8 @@
     "sizes": [],
     "options": [],
     "allergens": ["gluten", "dairy", "eggs"],
-    "available": true
+    "available": true,
+    "image": "images/menu/blueberry-muffin.jpg"
   },
   {
     "id": "chocolate-chip-cookie",
@@ -129,7 +140,8 @@
     "sizes": [],
     "options": [],
     "allergens": ["gluten", "dairy", "eggs"],
-    "available": true
+    "available": true,
+    "image": "images/menu/chocolate-chip-cookie.jpg"
   },
   {
     "id": "avocado-toast",
@@ -140,7 +152,8 @@
     "sizes": [],
     "options": ["Add fried egg", "Extra chili flakes"],
     "allergens": ["gluten"],
-    "available": true
+    "available": true,
+    "image": "images/menu/avocado-toast.jpg"
   },
   {
     "id": "ham-cheese-croissant",
@@ -151,7 +164,8 @@
     "sizes": [],
     "options": [],
     "allergens": ["gluten", "dairy"],
-    "available": true
+    "available": true,
+    "image": "images/menu/ham-cheese-croissant.jpg"
   },
   {
     "id": "seasonal-fruit-cup",
@@ -162,6 +176,7 @@
     "sizes": [],
     "options": [],
     "allergens": [],
-    "available": false
+    "available": false,
+    "image": "images/menu/seasonal-fruit-cup.jpg"
   }
 ]

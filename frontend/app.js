@@ -1,3 +1,36 @@
+async function hydrateMenuImages() {
+  try {
+    const [menuRes, siteRes] = await Promise.all([
+      fetch("/api/menu"),
+      fetch("/api/site"),
+    ]);
+    if (menuRes.ok) {
+      const items = await menuRes.json();
+      document.querySelectorAll(".menu-card[data-item-id]").forEach((card) => {
+        const item = items.find((i) => i.id === card.dataset.itemId);
+        if (!item || !item.image) return;
+        const img = card.querySelector(".menu-card-img");
+        if (img) {
+          img.src = item.image;
+          img.alt = item.name;
+        }
+      });
+    }
+    if (siteRes.ok) {
+      const site = await siteRes.json();
+      const heroPhoto = document.getElementById("hero-photo");
+      if (heroPhoto && site.heroImage) {
+        heroPhoto.src = site.heroImage;
+        heroPhoto.alt = site.heroImageAlt || heroPhoto.alt;
+      }
+    }
+  } catch (networkError) {
+    // Static src attributes already in the markup keep the page correct if this fails.
+  }
+}
+
+hydrateMenuImages();
+
 const navToggle = document.getElementById("nav-toggle");
 document.querySelectorAll(".site-nav a").forEach((link) => {
   link.addEventListener("click", () => {
@@ -20,22 +53,41 @@ function addMessage(text, sender) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let closeTimeoutId = null;
+let isChatOpen = false;
+
 function openChat() {
+  isChatOpen = true;
+  clearTimeout(closeTimeoutId);
+  chatWindow.classList.remove("chat-window--closing");
   chatWindow.hidden = false;
   chatToggle.setAttribute("aria-label", "Close chat");
   chatInput.focus();
 }
 
 function closeChat() {
-  chatWindow.hidden = true;
+  isChatOpen = false;
   chatToggle.setAttribute("aria-label", "Open chat");
+  clearTimeout(closeTimeoutId);
+
+  if (prefersReducedMotion) {
+    chatWindow.hidden = true;
+    return;
+  }
+
+  chatWindow.classList.add("chat-window--closing");
+  closeTimeoutId = setTimeout(() => {
+    chatWindow.hidden = true;
+    chatWindow.classList.remove("chat-window--closing");
+  }, 200);
 }
 
 chatToggle.addEventListener("click", () => {
-  if (chatWindow.hidden) {
-    openChat();
-  } else {
+  if (isChatOpen) {
     closeChat();
+  } else {
+    openChat();
   }
 });
 

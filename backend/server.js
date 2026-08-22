@@ -72,6 +72,9 @@ const MENU_ITEMS = JSON.parse(
 const PROMOTIONS = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "data", "promotions.json"), "utf-8")
 );
+const SITE_CONFIG = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "..", "data", "site.json"), "utf-8")
+);
 
 // Simple flat config — no per-category tax rules, no distance-based delivery pricing.
 const TAX_RATE = 0.08;
@@ -1190,6 +1193,14 @@ app.patch("/api/orders/:orderId/status", (req, res) => {
     console.error("Failed to update order status:", err);
     res.status(500).json({ error: "Failed to update order status." });
   }
+});
+
+app.get("/api/menu", (req, res) => {
+  res.json(MENU_ITEMS.filter((item) => item.available));
+});
+
+app.get("/api/site", (req, res) => {
+  res.json(SITE_CONFIG);
 });
 
 app.listen(PORT, () => {
