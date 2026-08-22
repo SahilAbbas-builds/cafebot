@@ -9,7 +9,21 @@ const Anthropic = require("@anthropic-ai/sdk");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// In-memory only — no database. Cleared whenever the server restarts.
+// Session/cart storage: an in-memory Map, keyed by a session-id cookie. This
+// is a development/demo convenience only, not a real session store — it has
+// no persistence and is cleared whenever the process restarts.
+//
+// This does NOT reliably work in production on Vercel (or any serverless
+// platform): serverless functions are not one long-running process. Requests
+// for the same session cookie can be routed to different function instances
+// — each with its own empty orderSessions Map and no shared memory between
+// them — or to a fresh cold-started instance that has never seen that
+// session at all. In practice this means a customer's in-progress cart can
+// silently reset mid-conversation on Vercel, since there is no guarantee two
+// consecutive chat requests hit the same instance. Known limitation — do not
+// treat this as production-ready session state. A real fix needs an external
+// session store shared across instances (e.g. Vercel KV or Redis) in place
+// of this Map; that is not implemented here.
 const SESSION_COOKIE_NAME = "cafebot_session";
 const orderSessions = new Map(); // sessionId -> order state
 
@@ -1215,6 +1229,14 @@ app.get("/api/brand", (req, res) => {
   res.json(BRAND_CONFIG);
 });
 
-app.listen(PORT, () => {
-  console.log(`${BRAND_CONFIG.cafeName} server running at http://localhost:${PORT}`);
-});
+// Vercel (and other serverless platforms) import this file as a handler and
+// invoke the exported app directly per-request — they never run this file as
+// a script, so app.listen() must not run there. Only bind to a port when this
+// file is executed directly (`node server.js` / `npm start`), for local dev.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`${BRAND_CONFIG.cafeName} server running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
