@@ -1,0 +1,48 @@
+[
+  {
+    "id": "happy-hour-latte",
+    "name": "Happy Hour Latte",
+    "rule": "20% off any latte ordered between 2:00 PM and 4:00 PM, Monday through Friday.",
+    "discountType": "percentage",
+    "discountValue": 20,
+    "eligibility": {
+      "categories": ["coffee"],
+      "itemIds": ["caffe-latte"],
+      "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "timeWindow": { "start": "14:00", "end": "16:00" },
+      "minQuantity": 1
+    },
+    "active": true
+  },
+  {
+    "id": "pastry-bogo",
+    "name": "Buy One Get One Pastry",
+    "rule": "Buy one pastry, get a second pastry of equal or lesser value free.",
+    "discountType": "bogo",
+    "discountValue": 100,
+    "eligibility": {
+      "categories": ["pastries"],
+      "itemIds": [],
+      "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      "timeWindow": null,
+      "minQuantity": 2
+    },
+    "active": true
+  },
+  {
+    "id": "student-discount",
+    "name": "Student Discount",
+    "rule": "10% off the entire order with a valid student ID shown at pickup.",
+    "discountType": "percentage",
+    "discountValue": 10,
+    "eligibility": {
+      "categories": [],
+      "itemIds": [],
+      "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      "timeWindow": null,
+      "minQuantity": 1,
+      "requiresVerification": "student_id"
+    },
+    "active": false
+  }
+]

@@ -1,0 +1,167 @@
+[
+  {
+    "id": "espresso",
+    "name": "Espresso",
+    "category": "coffee",
+    "description": "A bold, concentrated shot pulled from our house blend.",
+    "price": 3.00,
+    "sizes": ["Single", "Double"],
+    "options": [],
+    "allergens": [],
+    "available": true
+  },
+  {
+    "id": "cappuccino",
+    "name": "Cappuccino",
+    "category": "coffee",
+    "description": "Espresso topped with steamed milk and a thick layer of foam.",
+    "price": 4.25,
+    "sizes": ["Small", "Medium", "Large"],
+    "options": ["Oat milk", "Almond milk", "Extra shot"],
+    "allergens": ["dairy"],
+    "available": true
+  },
+  {
+    "id": "caffe-latte",
+    "name": "Caffe Latte",
+    "category": "coffee",
+    "description": "Smooth espresso with steamed milk and a light layer of foam.",
+    "price": 4.50,
+    "sizes": ["Small", "Medium", "Large"],
+    "options": ["Oat milk", "Almond milk", "Vanilla syrup", "Extra shot"],
+    "allergens": ["dairy"],
+    "available": true
+  },
+  {
+    "id": "chai-latte",
+    "name": "Chai Latte",
+    "category": "coffee",
+    "description": "Spiced black tea concentrate with steamed milk.",
+    "price": 4.75,
+    "sizes": ["Small", "Medium", "Large"],
+    "options": ["Oat milk", "Extra spice"],
+    "allergens": ["dairy"],
+    "available": true
+  },
+  {
+    "id": "hot-chocolate",
+    "name": "Hot Chocolate",
+    "category": "coffee",
+    "description": "Rich steamed cocoa topped with whipped cream.",
+    "price": 4.00,
+    "sizes": ["Small", "Medium", "Large"],
+    "options": ["Whipped cream", "Oat milk"],
+    "allergens": ["dairy"],
+    "available": true
+  },
+  {
+    "id": "cold-brew",
+    "name": "Cold Brew",
+    "category": "cold-drinks",
+    "description": "Slow-steeped for 18 hours for a smooth, low-acid finish.",
+    "price": 4.75,
+    "sizes": ["Medium", "Large"],
+    "options": ["Oat milk", "Simple syrup"],
+    "allergens": [],
+    "available": true
+  },
+  {
+    "id": "iced-matcha-latte",
+    "name": "Iced Matcha Latte",
+    "category": "cold-drinks",
+    "description": "Ceremonial-grade matcha whisked with cold milk over ice.",
+    "price": 5.25,
+    "sizes": ["Small", "Medium", "Large"],
+    "options": ["Oat milk", "Almond milk"],
+    "allergens": ["dairy"],
+    "available": true
+  },
+  {
+    "id": "english-breakfast-tea",
+    "name": "English Breakfast Tea",
+    "category": "tea",
+    "description": "A classic full-bodied black tea blend.",
+    "price": 3.25,
+    "sizes": ["12oz", "16oz"],
+    "options": ["Honey", "Lemon", "Milk"],
+    "allergens": [],
+    "available": true
+  },
+  {
+    "id": "green-tea",
+    "name": "Green Tea",
+    "category": "tea",
+    "description": "Light, grassy loose-leaf green tea.",
+    "price": 3.25,
+    "sizes": ["12oz", "16oz"],
+    "options": ["Honey"],
+    "allergens": [],
+    "available": true
+  },
+  {
+    "id": "butter-croissant",
+    "name": "Butter Croissant",
+    "category": "pastries",
+    "description": "Flaky, buttery, and baked fresh in-house every morning.",
+    "price": 3.50,
+    "sizes": [],
+    "options": [],
+    "allergens": ["gluten", "dairy", "eggs"],
+    "available": true
+  },
+  {
+    "id": "blueberry-muffin",
+    "name": "Blueberry Muffin",
+    "category": "pastries",
+    "description": "Moist muffin loaded with fresh blueberries.",
+    "price": 3.75,
+    "sizes": [],
+    "options": [],
+    "allergens": ["gluten", "dairy", "eggs"],
+    "available": true
+  },
+  {
+    "id": "chocolate-chip-cookie",
+    "name": "Chocolate Chip Cookie",
+    "category": "pastries",
+    "description": "Thick and chewy, baked fresh daily.",
+    "price": 2.75,
+    "sizes": [],
+    "options": [],
+    "allergens": ["gluten", "dairy", "eggs"],
+    "available": true
+  },
+  {
+    "id": "avocado-toast",
+    "name": "Avocado Toast",
+    "category": "food",
+    "description": "Sourdough, smashed avocado, chili flakes, and a squeeze of lime.",
+    "price": 7.00,
+    "sizes": [],
+    "options": ["Add fried egg", "Extra chili flakes"],
+    "allergens": ["gluten"],
+    "available": true
+  },
+  {
+    "id": "ham-cheese-croissant",
+    "name": "Ham & Cheese Croissant",
+    "category": "food",
+    "description": "Buttery croissant filled with ham and melted Swiss cheese.",
+    "price": 6.50,
+    "sizes": [],
+    "options": [],
+    "allergens": ["gluten", "dairy"],
+    "available": true
+  },
+  {
+    "id": "seasonal-fruit-cup",
+    "name": "Seasonal Fruit Cup",
+    "category": "food",
+    "description": "A fresh mix of seasonal fruit, currently out of season.",
+    "price": 4.50,
+    "sizes": [],
+    "options": [],
+    "allergens": [],
+    "available": false
+  }
+]
