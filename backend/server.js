@@ -849,6 +849,45 @@ function setPickupDetails(input, orderState) {
   };
 }
 
+// Accepts a wide range of real-world formats (spaces, dashes, dots, parens,
+// leading +) while rejecting obviously fake input: wrong digit count for any
+// real country, or a repeating/sequential pattern (e.g. "1111111111",
+// "1234567890") that a customer would never actually have.
+function isPlausiblePhoneNumber(raw) {
+  const digits = raw.trim().replace(/^\+/, "").replace(/[\s\-.()]/g, "");
+  if (!/^\d+$/.test(digits)) return false;
+  if (digits.length < 7 || digits.length > 15) return false;
+  if (/^(\d)\1+$/.test(digits)) return false;
+
+  let ascending = true;
+  let descending = true;
+  for (let i = 1; i < digits.length; i++) {
+    const prev = Number(digits[i - 1]);
+    const cur = Number(digits[i]);
+    if ((cur - prev + 10) % 10 !== 1) ascending = false;
+    if ((prev - cur + 10) % 10 !== 1) descending = false;
+  }
+  return !(ascending || descending);
+}
+
+// Deliberately loose about format — international addresses vary too much to
+// require a house-number-first or single-script convention. Only rejects
+// clear non-addresses: placeholders, digit-only strings, and single bare
+// words with no number and no punctuation (not enough structure for a
+// courier to act on).
+const ADDRESS_PLACEHOLDER_PATTERN = /^(n\/?a|none|null|test|asdf+|xxx+|unknown|tbd|address|123+)$/i;
+
+function isPlausibleAddress(raw) {
+  const value = raw.trim();
+  if (value.length < 4) return false;
+  if (ADDRESS_PLACEHOLDER_PATTERN.test(value)) return false;
+  if (!/\p{L}/u.test(value)) return false;
+
+  const hasDigit = /\d/.test(value);
+  const hasMultipleTokens = /[\s,]/.test(value);
+  return hasDigit || hasMultipleTokens;
+}
+
 function setDeliveryDetails(input, orderState) {
   const { name, phone, address, aptUnit, deliveryInstructions } = input || {};
 
@@ -861,6 +900,24 @@ function setDeliveryDetails(input, orderState) {
         message: `${field} must be a non-empty string.`,
       };
     }
+  }
+
+  if (phone !== undefined && !isPlausiblePhoneNumber(phone)) {
+    return {
+      success: false,
+      error: "invalid_phone",
+      message:
+        "That doesn't look like a real phone number. Ask the customer to re-enter it, ideally with a country or area code.",
+    };
+  }
+
+  if (address !== undefined && !isPlausibleAddress(address)) {
+    return {
+      success: false,
+      error: "invalid_address",
+      message:
+        "That doesn't look like a real delivery address. Ask the customer for their full address (street, city, etc.).",
+    };
   }
 
   if (name !== undefined) orderState.customer.name = name.trim();
