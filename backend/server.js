@@ -355,6 +355,16 @@ const tools = [
     input_schema: { type: "object", properties: {}, required: [] },
   },
   {
+    name: "calculateOrderCalories",
+    description:
+      "Calculate the customer's exact total calories for everything currently in the " +
+      "cart, using real menu calorie data. This is the only source of truth for calories " +
+      "— never calculate, estimate, or state a calorie number yourself. Call this any " +
+      "time the customer asks about calories, or mentions a calorie target (e.g. 'I want " +
+      "to stay under 1000 calories') that you should check the real total against.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+  {
     name: "getOrderSummary",
     description:
       "Generate the complete, structured order summary: items with quantities and " +
@@ -1012,6 +1022,33 @@ function calculateOrderTotal(orderState) {
   };
 }
 
+function calculateOrderCalories(orderState) {
+  const items = orderState.items.map((id) => {
+    const menuItem = MENU_ITEMS.find((m) => m.id === id);
+    const quantity = orderState.quantities[id] || 0;
+    const caloriesEach = menuItem ? menuItem.calories : 0;
+    return {
+      itemId: id,
+      name: menuItem ? menuItem.name : id,
+      quantity,
+      caloriesEach,
+      caloriesSubtotal: caloriesEach * quantity,
+    };
+  });
+
+  const totalCalories = items.reduce((sum, item) => sum + item.caloriesSubtotal, 0);
+
+  return {
+    success: true,
+    items,
+    totalCalories,
+    message:
+      "Exact calorie total for everything currently in the cart. Never estimate or state " +
+      "a calorie number yourself — always use this exact total, and compare it against " +
+      "any calorie target the customer mentioned.",
+  };
+}
+
 function getOrderSummary(orderState) {
   const items = orderState.items.map((id) => {
     const menuItem = MENU_ITEMS.find((m) => m.id === id);
@@ -1176,6 +1213,8 @@ async function executeTool(name, input, orderState) {
     result = setDeliveryDetails(input, orderState);
   } else if (name === "calculateOrderTotal") {
     result = calculateOrderTotal(orderState);
+  } else if (name === "calculateOrderCalories") {
+    result = calculateOrderCalories(orderState);
   } else if (name === "getOrderSummary") {
     result = getOrderSummary(orderState);
   } else if (name === "confirmOrder") {
