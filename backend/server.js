@@ -90,6 +90,14 @@ const SYSTEM_PROMPT = SYSTEM_PROMPT_TEMPLATE.replaceAll(
 const MENU_ITEMS = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "data", "menu.json"), "utf-8")
 );
+// Computed once at startup so its bytes are identical on every request —
+// required for the prompt-caching breakpoint below to actually hit.
+const AVAILABLE_MENU_ITEMS = MENU_ITEMS.filter((item) => item.available);
+const MENU_CONTEXT_TEXT =
+  "Current menu data (JSON) — the same items and fields the getMenu tool " +
+  "returns. Treat this as the real, current menu; you can still call getMenu " +
+  "mid-conversation if you want to double-check availability.\n\n" +
+  JSON.stringify(AVAILABLE_MENU_ITEMS, null, 2);
 const PROMOTIONS = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "data", "promotions.json"), "utf-8")
 );
@@ -1094,7 +1102,7 @@ async function executeTool(name, input, orderState) {
   let result;
 
   if (name === "getMenu") {
-    result = MENU_ITEMS.filter((item) => item.available);
+    result = AVAILABLE_MENU_ITEMS;
   } else if (name === "addItemToCart") {
     result = addItemToCart(input, orderState);
   } else if (name === "modifyItem") {
@@ -1151,10 +1159,24 @@ app.post("/api/chat", async (req, res) => {
       response = await client.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 16000,
-        system: SYSTEM_PROMPT,
+        // Two stable, request-invariant blocks (system prompt + full menu) —
+        // the breakpoint on the last one caches both, plus `tools` (which
+        // renders before `system`), in a single prefix. See the comment
+        // above MENU_CONTEXT_TEXT: both blocks must stay byte-identical
+        // across requests for this to actually hit the cache.
+        system: [
+          { type: "text", text: SYSTEM_PROMPT },
+          { type: "text", text: MENU_CONTEXT_TEXT, cache_control: { type: "ephemeral" } },
+        ],
         tools,
         messages,
       });
+
+      console.log(
+        `[cache] input_tokens=${response.usage.input_tokens} ` +
+          `cache_creation_input_tokens=${response.usage.cache_creation_input_tokens ?? 0} ` +
+          `cache_read_input_tokens=${response.usage.cache_read_input_tokens ?? 0}`
+      );
 
       messages.push({ role: "assistant", content: response.content });
 
@@ -1238,7 +1260,7 @@ app.patch("/api/orders/:orderId/status", (req, res) => {
 });
 
 app.get("/api/menu", (req, res) => {
-  res.json(MENU_ITEMS.filter((item) => item.available));
+  res.json(AVAILABLE_MENU_ITEMS);
 });
 
 app.get("/api/brand", (req, res) => {
