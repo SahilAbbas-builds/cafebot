@@ -664,6 +664,40 @@ h3 {
   border-bottom-left-radius: 2px;
 }
 
+/* ---------- Chat message formatting (bot messages only) ---------- */
+.chat-bubble.bot > * + * {
+  margin-top: 0.55rem;
+}
+
+.chat-bubble.bot .msg-heading {
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted-on-light);
+}
+
+.chat-bubble.bot .msg-list {
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.chat-bubble.bot ul.msg-list li {
+  list-style: disc outside;
+}
+
+.chat-bubble.bot ol.msg-list li {
+  list-style: decimal outside;
+}
+
+.chat-bubble.bot strong {
+  color: var(--color-rust-dark);
+  font-weight: 600;
+}
+
 .chat-input-row {
   display: flex;
   gap: 0.5rem;
@@ -803,6 +837,25 @@ h3 {
   .chat-toggle-label {
     font-size: 0.92rem;
   }
+
+  .dashboard-summary {
+    flex-direction: column;
+  }
+
+  .dashboard-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
@@ -810,4 +863,313 @@ h3 {
   .menu h2 {
     font-size: 1.5rem;
   }
+}
+
+/* ---------- Staff Dashboard ---------- */
+.staff-page {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-6);
+}
+
+#login-view {
+  max-width: 360px;
+  margin: var(--space-6) auto;
+}
+
+#login-view h1 {
+  font-size: var(--text-h2);
+  margin-bottom: var(--space-4);
+}
+
+#login-view label {
+  display: block;
+  font-family: var(--font-label);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted-on-light);
+  margin-bottom: 0.4rem;
+}
+
+#login-view input {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  background: var(--color-paper-light);
+  color: var(--color-ink);
+  margin-bottom: var(--space-3);
+}
+
+#login-view button[type="submit"] {
+  padding: 0.65rem 1.4rem;
+  border: 1px solid var(--color-rust-dark);
+  border-radius: var(--radius);
+  background: var(--color-rust-dark);
+  color: var(--color-cream);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-small);
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+#login-view button[type="submit"]:hover {
+  filter: brightness(1.15);
+}
+
+#login-error {
+  color: var(--color-rust-dark);
+  font-size: var(--text-small);
+  margin: 0 0 var(--space-2);
+  min-height: 1.2em;
+}
+
+#dashboard-view {
+  display: none;
+}
+
+.order-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.order-top-row h1 {
+  font-size: var(--text-h2);
+}
+
+/* Compact button variant — reuses the rust-dark/cream/brightness(1.15)
+   pattern from .btn-primary/.chat-toggle (the WCAG-AA-verified contrast fix
+   already established for this project), sized for a dense operational UI
+   instead of a marketing CTA. */
+.btn-compact {
+  display: inline-block;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--color-rust-dark);
+  border-radius: var(--radius);
+  background: var(--color-rust-dark);
+  color: var(--color-cream);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-small);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.btn-compact:hover {
+  filter: brightness(1.15);
+}
+
+.btn-compact-outline {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+.btn-compact-outline:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+
+.dashboard-summary {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.summary-card {
+  flex: 1;
+  background: var(--color-paper-light);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.summary-label {
+  font-family: var(--font-label);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted-on-light);
+}
+
+.summary-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  font-family: var(--font-label);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-paper-light);
+  color: var(--color-muted-on-light);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-tab:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+.filter-tab.is-active {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-cream);
+}
+
+.filter-tab-count {
+  opacity: 0.75;
+  margin-left: 0.25rem;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-3);
+}
+
+.order-card {
+  background: var(--color-paper-light);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.order-id-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.order-id {
+  font-family: var(--font-label);
+  font-size: var(--text-small);
+  color: var(--color-ink);
+  word-break: break-all;
+}
+
+.order-time {
+  font-family: var(--font-label);
+  font-size: var(--text-label);
+  color: var(--color-muted-on-light);
+}
+
+.order-items {
+  padding-left: 1.1rem;
+  font-size: var(--text-small);
+}
+
+.order-items li {
+  list-style: disc outside;
+}
+
+.order-fulfillment {
+  font-size: var(--text-small);
+  color: var(--color-muted-on-light);
+}
+
+.order-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.order-total {
+  font-family: var(--font-label);
+  font-size: var(--text-small);
+  color: var(--color-muted-on-light);
+}
+
+.order-total strong {
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.empty {
+  color: var(--color-muted-on-light);
+  font-family: var(--font-body);
+}
+
+/* Status badges — existing palette tokens only, via color-mix() */
+.status-badge {
+  display: inline-block;
+  font-family: var(--font-label);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+  border: 1px solid transparent;
+}
+
+.status-NEW {
+  background: color-mix(in srgb, var(--color-rust) 18%, var(--color-paper-light));
+  color: var(--color-rust-dark);
+  border-color: color-mix(in srgb, var(--color-rust) 45%, transparent);
+}
+
+.status-PREPARING {
+  background: color-mix(in srgb, var(--color-ink) 10%, var(--color-paper-light));
+  color: var(--color-ink);
+  border-color: color-mix(in srgb, var(--color-ink) 30%, transparent);
+}
+
+.status-READY {
+  background: color-mix(in srgb, var(--color-forest) 20%, var(--color-paper-light));
+  color: var(--color-forest);
+  border-color: color-mix(in srgb, var(--color-forest) 45%, transparent);
+}
+
+.status-COMPLETED {
+  background: color-mix(in srgb, var(--color-ink) 6%, var(--color-paper-light));
+  color: var(--color-muted-on-light);
+  border-color: var(--color-border);
 }

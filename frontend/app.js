@@ -81,10 +81,63 @@ const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const chatMessages = document.getElementById("chat-messages");
 
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatInline(escapedText) {
+  return escapedText.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
+const BULLET_LINE_RE = /^[-*]\s+(.*)$/;
+const NUMBERED_LINE_RE = /^\d+\.\s+(.*)$/;
+const HEADING_LINE_RE = /^\*\*(.+?):\*\*$/;
+
+function renderList(lines, tag, lineRe) {
+  const items = lines.map((line) => `<li>${formatInline(line.replace(lineRe, "$1"))}</li>`).join("");
+  return `<${tag} class="msg-list">${items}</${tag}>`;
+}
+
+function renderBlock(block) {
+  const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return "";
+
+  let html = "";
+  let rest = lines;
+
+  // A leading standalone "**Label:**" line (e.g. "**Items:**") is peeled off
+  // as a heading before classifying the rest, since the model's real output
+  // puts a bold label and its list in the SAME block (no blank line between).
+  if (HEADING_LINE_RE.test(lines[0])) {
+    html += `<div class="msg-heading">${formatInline(lines[0].match(HEADING_LINE_RE)[1])}</div>`;
+    rest = lines.slice(1);
+  }
+
+  if (rest.length === 0) return html;
+  if (rest.every((l) => BULLET_LINE_RE.test(l))) return html + renderList(rest, "ul", BULLET_LINE_RE);
+  if (rest.every((l) => NUMBERED_LINE_RE.test(l))) return html + renderList(rest, "ol", NUMBERED_LINE_RE);
+
+  return html + `<p class="msg-para">${rest.map(formatInline).join("<br>")}</p>`;
+}
+
+function renderMessageHtml(rawText) {
+  const escaped = escapeHtml(rawText).replace(/\r\n/g, "\n");
+  return escaped.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean).map(renderBlock).join("");
+}
+
 function addMessage(text, sender) {
   const bubble = document.createElement("div");
   bubble.className = `chat-bubble ${sender}`;
-  bubble.textContent = text;
+  if (sender === "bot") {
+    bubble.innerHTML = renderMessageHtml(text);
+  } else {
+    bubble.textContent = text;
+  }
   chatMessages.appendChild(bubble);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
