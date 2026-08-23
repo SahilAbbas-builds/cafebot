@@ -3,6 +3,7 @@
   "tagline": "Fresh Coffee, Warm Welcome",
   "assistantName": "CafeBot",
   "logoIcon": null,
+  "googleReviewUrl": null,
   "colors": {
     "primary": "#b5502e",
     "primaryDark": "#8f3d22",

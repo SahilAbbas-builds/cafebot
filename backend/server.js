@@ -1185,6 +1185,14 @@ function confirmOrder(orderState) {
       promotion: summary.promotion,
       pricing: summary.pricing,
     },
+    ...(BRAND_CONFIG.googleReviewUrl
+      ? {
+          reviewPrompt:
+            `After confirming this with the customer, add one brief, friendly line inviting ` +
+            `them to leave a Google review at ${BRAND_CONFIG.googleReviewUrl} — keep it short ` +
+            `and not pushy. Use this exact URL, never a different or invented one.`,
+        }
+      : {}),
     message: wasUpdate
       ? "The existing saved order was updated with these changes — same order ID as before. Tell the customer their order was updated, not that a new one was placed. Full checkout/payment submission still isn't available yet."
       : "Order confirmed, saved, and locked in — share the order ID with the customer. Full checkout/payment submission still isn't available yet.",
