@@ -1226,7 +1226,102 @@ app.post("/api/chat", async (req, res) => {
 
 const STAFF_ORDER_STATUSES = ["NEW", "PREPARING", "READY", "COMPLETED"];
 
-app.get("/api/orders", (req, res) => {
+// Staff auth: a single shared password (STAFF_PASSWORD) gates the dashboard.
+// Sessions are a signed, stateless cookie (payload + HMAC using STAFF_PASSWORD
+// as the key) rather than an in-memory session store — this is deliberate:
+// orderSessions above shows how an in-memory Map breaks on Vercel, since a
+// later request can land on a different function instance with no shared
+// memory. A signed cookie needs no shared state to verify, so it works the
+// same way locally and on serverless.
+const STAFF_PASSWORD = process.env.STAFF_PASSWORD;
+const STAFF_SESSION_COOKIE_NAME = "cafebot_staff_session";
+const STAFF_SESSION_TTL_MS = 1000 * 60 * 60 * 8; // 8 hours
+
+function signStaffSession(payload) {
+  const payloadB64 = Buffer.from(JSON.stringify(payload), "utf-8").toString("base64url");
+  const signature = crypto.createHmac("sha256", STAFF_PASSWORD).update(payloadB64).digest("base64url");
+  return `${payloadB64}.${signature}`;
+}
+
+function verifyStaffSession(token) {
+  if (!STAFF_PASSWORD || !token || typeof token !== "string") return false;
+
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
+  const [payloadB64, signature] = parts;
+
+  const expectedSignature = crypto.createHmac("sha256", STAFF_PASSWORD).update(payloadB64).digest("base64url");
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expectedSignature);
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+    return false;
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf-8"));
+  } catch {
+    return false;
+  }
+  return typeof payload.exp === "number" && payload.exp > Date.now();
+}
+
+function getStaffSessionToken(req) {
+  const cookieHeader = req.headers.cookie || "";
+  const match = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${STAFF_SESSION_COOKIE_NAME}=`));
+  return match ? match.split("=")[1] : null;
+}
+
+function requireStaffAuth(req, res, next) {
+  if (!verifyStaffSession(getStaffSessionToken(req))) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+  next();
+}
+
+app.post("/api/staff/login", (req, res) => {
+  if (!STAFF_PASSWORD) {
+    console.error("STAFF_PASSWORD is not set; staff login is disabled.");
+    return res.status(500).json({ error: "Staff login is not configured." });
+  }
+
+  const { password } = req.body;
+  if (typeof password !== "string" || !password) {
+    return res.status(400).json({ error: "Password is required." });
+  }
+
+  const passwordBuf = Buffer.from(password);
+  const expectedBuf = Buffer.from(STAFF_PASSWORD);
+  const isValid =
+    passwordBuf.length === expectedBuf.length && crypto.timingSafeEqual(passwordBuf, expectedBuf);
+
+  if (!isValid) {
+    return res.status(401).json({ error: "Incorrect password." });
+  }
+
+  const token = signStaffSession({ exp: Date.now() + STAFF_SESSION_TTL_MS });
+  res.cookie(STAFF_SESSION_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: !!process.env.VERCEL,
+    maxAge: STAFF_SESSION_TTL_MS,
+  });
+  res.json({ success: true });
+});
+
+app.post("/api/staff/logout", (req, res) => {
+  res.clearCookie(STAFF_SESSION_COOKIE_NAME);
+  res.json({ success: true });
+});
+
+app.get("/api/staff/session", (req, res) => {
+  res.json({ authenticated: verifyStaffSession(getStaffSessionToken(req)) });
+});
+
+app.get("/api/orders", requireStaffAuth, (req, res) => {
   try {
     res.json(readOrders());
   } catch (err) {
@@ -1235,7 +1330,7 @@ app.get("/api/orders", (req, res) => {
   }
 });
 
-app.patch("/api/orders/:orderId/status", (req, res) => {
+app.patch("/api/orders/:orderId/status", requireStaffAuth, (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
 

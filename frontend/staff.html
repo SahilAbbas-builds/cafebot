@@ -69,14 +69,100 @@
     cursor: pointer;
   }
   .empty { color: #6b6058; }
+  #login-view {
+    max-width: 320px;
+  }
+  #login-view label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  #login-view input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #c9beb2;
+    border-radius: 6px;
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+  #login-view button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #4a3728;
+    color: #fff;
+    cursor: pointer;
+  }
+  #login-error {
+    color: #a0342b;
+    font-size: 0.85rem;
+    margin: 0 0 10px;
+    min-height: 1.2em;
+  }
+  #dashboard-view { display: none; }
+  #dashboard-view .order-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  #logout-btn {
+    padding: 6px 14px;
+    border: 1px solid #c9beb2;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
-  <h1><span data-brand="cafeName">CafeBot</span> — Staff Dashboard</h1>
-  <button id="refresh-btn">Refresh</button>
-  <div id="orders"></div>
+  <div id="login-view">
+    <h1><span data-brand="cafeName">CafeBot</span> — Staff Login</h1>
+    <form id="login-form">
+      <label for="staff-password">Password</label>
+      <input type="password" id="staff-password" autocomplete="current-password" required />
+      <p id="login-error"></p>
+      <button type="submit">Log in</button>
+    </form>
+  </div>
+
+  <div id="dashboard-view">
+    <div class="order-top-row">
+      <h1><span data-brand="cafeName">CafeBot</span> — Staff Dashboard</h1>
+      <button id="logout-btn">Log out</button>
+    </div>
+    <button id="refresh-btn">Refresh</button>
+    <div id="orders"></div>
+  </div>
 
   <script>
+    function showLoginView() {
+      document.getElementById("dashboard-view").style.display = "none";
+      document.getElementById("login-view").style.display = "block";
+    }
+
+    function showDashboardView() {
+      document.getElementById("login-view").style.display = "none";
+      document.getElementById("dashboard-view").style.display = "block";
+    }
+
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/staff/session");
+        const data = await res.json();
+        if (data.authenticated) {
+          showDashboardView();
+          loadOrders();
+        } else {
+          showLoginView();
+        }
+      } catch (err) {
+        showLoginView();
+      }
+    }
+
     async function hydrateBrand() {
       try {
         const res = await fetch("/api/brand");
@@ -111,6 +197,10 @@
       let orders;
       try {
         const res = await fetch("/api/orders");
+        if (res.status === 401) {
+          showLoginView();
+          return;
+        }
         orders = await res.json();
       } catch (err) {
         container.innerHTML = '<p class="empty">Failed to load orders.</p>';
@@ -175,11 +265,15 @@
 
     async function updateStatus(orderId, status) {
       try {
-        await fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status }),
         });
+        if (res.status === 401) {
+          showLoginView();
+          return;
+        }
       } catch (err) {
         alert("Failed to update order status.");
       }
@@ -187,8 +281,42 @@
     }
 
     document.getElementById("refresh-btn").addEventListener("click", loadOrders);
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      try {
+        await fetch("/api/staff/logout", { method: "POST" });
+      } catch (err) {
+        // fall through to showing the login view regardless
+      }
+      showLoginView();
+    });
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById("login-error");
+      const passwordInput = document.getElementById("staff-password");
+      errorEl.textContent = "";
+
+      try {
+        const res = await fetch("/api/staff/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: passwordInput.value }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errorEl.textContent = data.error || "Login failed.";
+          return;
+        }
+        passwordInput.value = "";
+        showDashboardView();
+        loadOrders();
+      } catch (err) {
+        errorEl.textContent = "Could not reach the server.";
+      }
+    });
+
     hydrateBrand();
-    loadOrders();
+    checkSession();
   </script>
 </body>
 </html>
