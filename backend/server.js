@@ -1157,7 +1157,7 @@ app.post("/api/chat", async (req, res) => {
     let response;
     while (true) {
       response = await client.messages.create({
-        model: "claude-sonnet-5",
+        model: "claude-haiku-4-5",
         max_tokens: 16000,
         // Two stable, request-invariant blocks (system prompt + full menu) —
         // the breakpoint on the last one caches both, plus `tools` (which
