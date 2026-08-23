@@ -4,10 +4,24 @@ const crypto = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const Anthropic = require("@anthropic-ai/sdk");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Best-effort per-IP cap on /api/chat, since every request calls the paid
+// Claude API. Like orderSessions below, this in-memory store isn't shared
+// across Vercel serverless instances/cold starts, so it blunts casual
+// scripted abuse rather than guaranteeing a hard global limit — a real
+// production limit would need a shared store (e.g. Vercel KV/Redis).
+const chatRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many messages sent. Please wait a moment and try again." },
+});
 
 // Session/cart storage: an in-memory Map, keyed by a session-id cookie. This
 // is a development/demo convenience only, not a real session store — it has
@@ -61,6 +75,7 @@ function getSessionId(req, res) {
   res.cookie(SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
     sameSite: "lax",
+    secure: !!process.env.VERCEL,
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
   });
   return sessionId;
@@ -1243,7 +1258,7 @@ async function executeTool(name, input, orderState) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "frontend")));
 
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", chatRateLimiter, async (req, res) => {
   const { message, conversationHistory } = req.body;
 
   if (!message || typeof message !== "string" || !message.trim()) {
