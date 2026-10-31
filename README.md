@@ -1,77 +1,47 @@
-# CafeBot
+<div align="center">
+  <h1>☕ CafeBot</h1>
+  <p><strong>AI-Powered Ordering Experience & Staff Dashboard</strong></p>
 
-Café web app.
+  <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express" />
+  <img src="https://img.shields.io/badge/Claude%20AI-D97757?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude AI" />
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
+</div>
 
-## Structure
+<br/>
 
-- `frontend/` — index.html, styles.css, app.js
-- `backend/` — server-side code (Express app that also serves `frontend/` as static files)
-- `data/` — data files
-- `prompts/` — prompt templates
+This repository contains the code for CafeBot, a web application designed to provide an AI-powered ordering experience for a café. It features a customer-facing website with a chat interface for ordering and a staff dashboard for managing orders.
 
-## Features & Architecture
+## 📸 Previews
 
-### White-labeling
+### Storefront & Menu
+<img width="947" height="349" alt="Screenshot 2026-10-31 130842" src="https://github.com/user-attachments/assets/1e3658fc-b7b2-4ced-aae5-384a013cf0ba" />
 
-The site and chat assistant are re-skinned entirely from one file: `data/brand.config.json`
-(`cafeName`, `tagline`, `assistantName`, `logoIcon`, `colors.primary/primaryDark/accent`,
-`images.hero`/`heroAlt`). Editing it and restarting the server re-skins the café name, tagline,
-logo, accent colors, hero photo, and the AI assistant's own name/persona — no other file needs
-to change. The backend serves it at `GET /api/brand`; `frontend/app.js` fetches that endpoint
-and applies the values to the page (text via `[data-brand]` attributes, colors via CSS custom
-properties), and `frontend/staff.html` does the same for its own title/heading. The assistant's
-system prompt (`prompts/system-prompt.md`) uses `{{CAFE_NAME}}`/`{{ASSISTANT_NAME}}` placeholders
-that the backend fills in from the same config before each request.
 
-### Chat assistant tools
+### AI Order Assistant
+<img src="https://github.com/user-attachments/assets/c3548251-5532-4c77-b094-db95fa15f874" height="400" />
+<img src="https://github.com/user-attachments/assets/82ace911-e4c1-4144-9e33-fe87af0ef20b" height="400" />
 
-The chat assistant (`POST /api/chat`) is given the following tools to answer questions and take
-orders, each backed by real menu/order data rather than the model's own memory:
 
-- `getMenu` — look up the current menu (available items only)
-- `addItemToCart` — add a menu item (with size/options) to the order
-- `modifyItem` — change the quantity, size, or options of an item already in the order
-- `removeItem` — remove an item, or reduce its quantity
-- `viewCart` — summarize the current order's items and state
-- `applyPromotion` — check/apply a real promotion code against the order
-- `setPickupDetails` — capture pickup name and optional pickup time
-- `setDeliveryDetails` — capture delivery name, phone, and address
-- `calculateOrderTotal` — compute the exact subtotal/tax/total from real prices
-- `getOrderSummary` — build the full structured order summary shown before checkout
-- `confirmOrder` — save the confirmed order and return its order ID
+## 🚀 Features
 
-### Staff dashboard
+*   **White-labeling:** Easily customize the café's branding (name, tagline, colors, logo, hero image) through a single configuration file (`data/brand.config.json`).
+*   **AI-powered Chat Assistant:** An interactive chatbot handles customer inquiries, takes orders, and manages the ordering process using a suite of defined tools.
+*   **Comprehensive Ordering Tools:** The AI assistant can utilize tools for menu retrieval, adding/modifying/removing items, viewing the cart, applying promotions, setting pickup/delivery details, calculating totals, and confirming orders.
+*   **Staff Dashboard:** A secure interface for staff to view incoming orders, track their status (New → Preparing → Ready → Completed), and manage order details.
+*   **Order Management:** Orders are persisted and can be viewed and updated by staff through the dedicated dashboard.
+*   **Responsive Design:** The frontend is designed to be accessible and user-friendly across various devices.
 
-`frontend/staff.html` (served at `/staff.html`) is a lightweight, unauthenticated dashboard for
-viewing incoming orders and advancing their status (`NEW → PREPARING → READY → COMPLETED`) via
-`GET /api/orders` and `PATCH /api/orders/:id/status`.
+## 🛠️ Tech Stack
 
-## Setup
+*   **Backend:** Node.js, Express.js
+*   **Frontend:** HTML, CSS, JavaScript
+*   **AI Integration:** Anthropic SDK (Claude Haiku 4.5)
+*   **Dependencies:** dotenv, express, express-rate-limit, @anthropic-ai/sdk
 
-1. Install dependencies:
-   ```
-   cd backend
-   npm install
-   ```
-2. Copy `.env.example` to `.env` in the project root and fill in real values:
-   ```
-   ANTHROPIC_API_KEY=your-key-here
-   PORT=3000
-   ```
-   `.env` is git-ignored — never commit it.
+## 🚀 Installation
 
-## Running locally
-
-From `backend/`:
-```
-npm start
-```
-The site (frontend + API) is served at `http://localhost:3000` (or `$PORT` if set). The staff dashboard is at `/staff.html`.
-
-## Deployment notes
-
-- `PORT` is read from the environment; the host's assigned port is used automatically if set.
-- `ANTHROPIC_API_KEY` must be set in the deployment environment's own secret/env var store — never bake it into the repo or image.
-- Order storage (`data/orders.json`) is plain file-based read/write, meant for development and demos only — it has no locking, concurrency control, or durability guarantee, and will not reliably persist on platforms with an ephemeral or read-only filesystem (e.g. serverless functions). Replace with a real database before running this in production. See the comment above `ORDERS_PATH` in `backend/server.js` for details.
-- Cart/session state (`orderSessions`, keyed by a session cookie) is an in-memory `Map`, not a real session store. On Vercel (or any serverless platform) this is a known limitation, not production-ready: separate requests for the same session can land on different function instances with no shared memory, so an in-progress order can silently reset mid-conversation. A real fix needs an external, shared session store (e.g. Vercel KV or Redis) in place of the in-memory Map — not implemented here. See the comment above `orderSessions` in `backend/server.js` for details.
-- `backend/server.js` exports the Express `app` (`module.exports = app`) instead of calling `app.listen()` unconditionally — Vercel imports and invokes it as a serverless handler per request. `app.listen()` only runs when the file is executed directly (`node server.js` / `npm start`), gated behind a `require.main === module` check, so local development is unaffected. `vercel.json` at the repo root routes all incoming requests to that handler.
+1. Clone the repository:
+```bash
+git clone [https://github.com/SahilAbbas-builds/cafebot.git](https://github.com/SahilAbbas-builds/cafebot.git)
+cd cafebot
